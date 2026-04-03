@@ -6,7 +6,7 @@
 
 ## 프로젝트 개요
 
-기업 문서를 인제스트하고, RAG 기반 검색 + AI 에이전트 워크플로우를 통해
+문서를 인제스트하고, RAG 기반 검색 + AI 에이전트 워크플로우를 통해
 사용자 질문에 답변하는 **엔터프라이즈 AI 플랫폼 백엔드**.
 
 프로덕션 수준의 RAG 파이프라인, 멀티스텝 에이전트 워크플로우, LLM 서빙 인프라를
@@ -48,7 +48,7 @@ enterprise-rag-agent-platform/
 │   ├── main.py                  # FastAPI 앱 진입점
 │   ├── config.py                # 설정 관리 (pydantic-settings)
 │   │
-│   ├── api/                     # ⭐ [JD: 고성능 API 서버]
+│   ├── api/                     # API 레이어
 │   │   ├── __init__.py
 │   │   ├── router.py            # 라우터 통합
 │   │   ├── endpoints/
@@ -64,7 +64,7 @@ enterprise-rag-agent-platform/
 │   │       ├── document.py
 │   │       └── agent.py
 │   │
-│   ├── rag/                     # ⭐ [JD: RAG 시스템 고도화]
+│   ├── rag/                     # RAG 파이프라인
 │   │   ├── __init__.py
 │   │   ├── pipeline.py          # 인제스트 오케스트레이터
 │   │   │
@@ -94,9 +94,9 @@ enterprise-rag-agent-platform/
 │   │   │
 │   │   └── retriever.py         # 검색 → Re-ranking → Context 구성
 │   │
-│   ├── agent/                   # ⭐ [JD: AI 에이전트 워크플로우]
+│   ├── agent/                   # AI 에이전트
 │   │   ├── __init__.py
-│   │   ├── graph.py             # LangGraph 상태 머신 정의 (핵심!)
+│   │   ├── graph.py             # LangGraph 상태 머신 정의
 │   │   ├── state.py             # AgentState 정의 (대화 히스토리, 중간 결과 등)
 │   │   ├── nodes/               # 그래프 노드 (각 스텝)
 │   │   │   ├── query_analyzer.py    # 질문 분석 → 의도 분류
@@ -115,7 +115,7 @@ enterprise-rag-agent-platform/
 │   │   │
 │   │   └── memory.py            # 대화 히스토리 관리 (short-term + long-term)
 │   │
-│   ├── llm/                     # ⭐ [JD: LLM 추론 엔진 연동]
+│   ├── llm/                     # LLM 서빙
 │   │   ├── __init__.py
 │   │   ├── base.py              # BaseLLMClient 인터페이스
 │   │   ├── openai_client.py     # OpenAI API 클라이언트
@@ -164,7 +164,7 @@ enterprise-rag-agent-platform/
 │       ├── test_chat.py
 │       └── test_documents.py
 │
-└── infra/                       # ⭐ [JD: LLMOps 인프라]
+└── infra/                       # 인프라 & 모니터링
     ├── milvus/
     │   └── milvus.yaml          # Milvus standalone 설정
     ├── prometheus/
