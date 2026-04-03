@@ -8,17 +8,35 @@
 
 ## Tech Stack
 
-| Category | Technologies |
-|---|---|
-| **API Server** | FastAPI, Uvicorn, SSE Streaming |
-| **Vector DB** | Milvus (HNSW, Hybrid Search, RRF) |
-| **LLM Serving** | vLLM, Ollama, OpenAI API |
-| **Agent Framework** | LangGraph (Stateful Multi-step Workflow) |
-| **Database** | PostgreSQL (AsyncPG + SQLAlchemy) |
-| **Cache** | Redis (Semantic Cache) |
-| **Task Queue** | Celery |
-| **Monitoring** | Prometheus, Grafana |
-| **Infra** | Docker Compose, Nginx |
+### Backend & API
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
+![Uvicorn](https://img.shields.io/badge/Uvicorn-ASGI-499848?style=flat-square)
+![Pydantic](https://img.shields.io/badge/Pydantic-v2-E92063?style=flat-square&logo=pydantic&logoColor=white)
+![Celery](https://img.shields.io/badge/Celery-37814A?style=flat-square&logo=celery&logoColor=white)
+
+### LLM & AI Agent
+![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?style=flat-square&logo=langchain&logoColor=white)
+![vLLM](https://img.shields.io/badge/vLLM-FF6F00?style=flat-square)
+![Ollama](https://img.shields.io/badge/Ollama-000000?style=flat-square&logo=ollama&logoColor=white)
+![OpenAI](https://img.shields.io/badge/OpenAI_API-412991?style=flat-square&logo=openai&logoColor=white)
+
+### Vector DB & Search
+![Milvus](https://img.shields.io/badge/Milvus-00A1EA?style=flat-square&logo=milvus&logoColor=white)
+![HNSW](https://img.shields.io/badge/HNSW_Index-4A90D9?style=flat-square)
+![BM25](https://img.shields.io/badge/BM25_Sparse-6C757D?style=flat-square)
+![RRF](https://img.shields.io/badge/RRF_Fusion-8B5CF6?style=flat-square)
+
+### Database & Cache
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-Async-D71F00?style=flat-square&logo=sqlalchemy&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white)
+
+### Infra & Monitoring
+![Docker](https://img.shields.io/badge/Docker_Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white)
 
 ## Architecture
 
@@ -127,7 +145,3 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
 # API 서버 확인
 curl http://localhost:8000/api/v1/health
 ```
-
-## License
-
-MIT
