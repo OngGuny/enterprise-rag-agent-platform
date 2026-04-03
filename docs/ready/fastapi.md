@@ -7,14 +7,128 @@
 - ASGI는 WebSocket, HTTP/2, SSE 같은 long-lived connection을 네이티브로 지원.
 - WSGI에서 동시 1000 요청을 처리하려면 스레드 1000개가 필요하지만, ASGI는 단일 이벤트 루프에서 처리 가능.
 
-## Uvicorn
+## ASGI/WSGI 서버 비교
 
-- ASGI 서버 구현체. `uvloop` (libuv 기반 이벤트 루프) 사용 시 순수 asyncio 대비 2~4배 빠름.
-- **Gunicorn + Uvicorn Worker** 조합: Gunicorn이 프로세스 매니저 역할, Uvicorn Worker가 실제 요청 처리.
-  ```bash
-  gunicorn src.main:app -w 4 -k uvicorn.workers.UvicornWorker
-  ```
-- 프로덕션에서는 멀티 워커 필수. CPU 코어 수 * 2 + 1이 일반적인 워커 수 공식.
+### Uvicorn
+
+- Python ASGI 서버 구현체. 단일 프로세스, 단일 이벤트 루프.
+- **uvloop**: libuv(Node.js의 이벤트 루프) 기반 Python 이벤트 루프. 순수 asyncio 대비 2~4배 빠름.
+- **httptools**: Node.js의 HTTP 파서를 Python 바인딩. 표준 라이브러리 대비 파싱 속도 향상.
+
+```bash
+# 개발
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+
+# 프로덕션 (단일 프로세스)
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+- `--reload`: 코드 변경 감지 → 자동 재시작. **개발 전용** (watchfiles 의존).
+- `--workers`: Uvicorn 자체 멀티 프로세스 모드 (0.18+). Gunicorn 없이도 멀티 워커 가능.
+
+#### Uvicorn의 한계
+- 프로세스 매니저 기능이 기본적: 워커 죽으면 재시작은 하지만, graceful shutdown/reload이 Gunicorn보다 덜 정교.
+- 프로덕션에서 더 안정적인 프로세스 관리가 필요하면 Gunicorn과 조합.
+
+### Gunicorn
+
+- Python **WSGI** 서버. 원래 동기 전용이지만, 워커 클래스를 교체하면 ASGI도 처리 가능.
+- **Pre-fork 모델**: 마스터 프로세스가 워커 프로세스를 fork하여 관리.
+
+```bash
+gunicorn src.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+```
+
+#### Gunicorn이 하는 일 (프로세스 매니저 역할)
+1. **워커 생성/관리**: 지정된 수의 워커 프로세스를 fork.
+2. **워커 모니터링**: 워커가 죽으면 자동 재생성.
+3. **Graceful reload**: `kill -HUP <pid>` → 새 워커 생성 후 구 워커를 순차 종료. 다운타임 없음.
+4. **Graceful shutdown**: `kill -TERM <pid>` → 처리 중인 요청 완료 후 종료.
+5. **타임아웃 관리**: `--timeout 30` → 30초 내 응답 없는 워커 강제 종료 (hang 방지).
+
+#### 워커 수 결정
+```
+워커 수 = CPU 코어 수 * 2 + 1  (Gunicorn 공식 권장)
+```
+- I/O 바운드 작업이 많으면 코어 수 * 2~4.
+- CPU 바운드 작업이 많으면 코어 수 * 1.
+- 실제로는 부하 테스트로 최적값을 찾아야 함.
+
+### Gunicorn + Uvicorn Worker 조합
+
+```
+                    ┌──────────────────┐
+                    │  Gunicorn Master │  (프로세스 매니저)
+                    └────────┬─────────┘
+                             │ fork
+              ┌──────────────┼──────────────┐
+              │              │              │
+    ┌─────────▼───┐ ┌───────▼─────┐ ┌──────▼──────┐
+    │ Uvicorn     │ │ Uvicorn     │ │ Uvicorn     │
+    │ Worker #1   │ │ Worker #2   │ │ Worker #3   │
+    │ (이벤트루프)│ │ (이벤트루프)│ │ (이벤트루프)│
+    └─────────────┘ └─────────────┘ └─────────────┘
+```
+
+- **Gunicorn**: 프로세스 생성, 모니터링, 시그널 처리, graceful reload.
+- **Uvicorn Worker**: 각 프로세스 내에서 ASGI 이벤트 루프 실행, 실제 요청 처리.
+- **왜 이 조합인가?**: Uvicorn의 빠른 ASGI 처리 + Gunicorn의 안정적인 프로세스 관리.
+
+### Uvicorn 단독 vs Gunicorn + Uvicorn
+
+| 항목 | Uvicorn 단독 (`--workers`) | Gunicorn + Uvicorn Worker |
+|---|---|---|
+| 프로세스 관리 | 기본적 | 성숙하고 안정적 |
+| Graceful reload | 제한적 | `kill -HUP`으로 무중단 재시작 |
+| 설정 유연성 | CLI 옵션 | config 파일, 훅 함수 |
+| 의존성 | uvicorn만 | gunicorn + uvicorn |
+| 적합한 경우 | 컨테이너 환경 (K8s가 관리) | 베어메탈, VM 직접 배포 |
+
+**Docker/K8s 환경에서는**: 컨테이너 오케스트레이터가 프로세스 관리를 하므로 Uvicorn 단독으로 충분.
+각 컨테이너에 워커 1개 → 컨테이너 수로 스케일링하는 것이 K8s 방식.
+
+**VM/베어메탈에서는**: Gunicorn + Uvicorn Worker가 더 안정적.
+
+### Hypercorn (참고)
+
+- 또 다른 ASGI 서버. HTTP/3 (QUIC) 지원이 특징.
+- Trio (asyncio 대안 비동기 라이브러리) 백엔드 지원.
+- Uvicorn 대비 사용자가 적어 생태계/레퍼런스가 부족.
+
+### Daphne (참고)
+
+- Django Channels 팀이 만든 ASGI 서버.
+- Django 프로젝트에서 주로 사용. FastAPI에서는 거의 안 씀.
+
+## 프로덕션 배포 구성 예시
+
+### 1. Docker + Uvicorn (K8s 환경)
+```dockerfile
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 워커 1개 → K8s HPA로 Pod 수 조절
+```
+
+### 2. VM + Gunicorn + Uvicorn + systemd
+```ini
+# /etc/systemd/system/api.service
+[Service]
+ExecStart=/app/.venv/bin/gunicorn src.main:app \
+    -w 4 \
+    -k uvicorn.workers.UvicornWorker \
+    --bind 0.0.0.0:8000 \
+    --timeout 120 \
+    --graceful-timeout 30 \
+    --access-logfile -
+Restart=always
+```
+
+### 3. 전체 스택
+```
+Internet → Nginx (SSL, 정적파일, Rate Limit)
+         → Gunicorn (프로세스 관리)
+         → Uvicorn Worker (ASGI 처리)
+         → FastAPI (라우팅, 비즈니스 로직)
+```
 
 ## Lifespan (생명주기)
 
