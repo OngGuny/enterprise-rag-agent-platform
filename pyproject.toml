@@ -50,6 +50,7 @@ dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.25.0",
     "pytest-cov>=6.0.0",
+    "asgi-lifespan>=2.1.0",
     "ruff>=0.8.0",
     "mypy>=1.13.0",
 ]
@@ -67,6 +68,12 @@ known-first-party = ["src"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "integration: tests that require external services (Postgres, Redis, Milvus) running on localhost",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:pymilvus.*",
+]
 
 [tool.mypy]
 python_version = "3.13"

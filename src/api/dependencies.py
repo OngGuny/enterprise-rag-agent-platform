@@ -14,7 +14,7 @@ from src.db.session import get_db_session
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncGenerator[AsyncSession]:
     async for session in get_db_session():
         yield session
 
